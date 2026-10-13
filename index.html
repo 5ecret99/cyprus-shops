@@ -46,6 +46,12 @@
     text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,0 3px 0 #000}
   .meme .big{font-size:3rem;text-shadow:none;line-height:1}
   .meme small{position:absolute;right:8px;bottom:4px;color:#ffffffb0;font-size:.7rem}
+  .meme .info{position:absolute;left:8px;bottom:6px;width:28px;height:28px;border-radius:50%;border:2px solid #fff;
+    background:#000a;color:#fff;font:700 15px/1 system-ui,sans-serif;cursor:pointer;padding:0}
+  .meme .badge{position:absolute;left:8px;top:6px;background:#000a;color:#fff;font-size:.72rem;border-radius:999px;padding:2px 8px}
+  .explain{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;
+    padding:10px 14px;margin:0 0 8px;font-size:.92rem}
+  .explain b{display:block;margin-bottom:2px}
   .apps{display:flex;gap:6px;flex-wrap:wrap}
   .app{font-size:.8rem;text-decoration:none;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:var(--bg)}
   .app:hover{border-color:var(--accent);color:var(--accent)}
@@ -66,6 +72,7 @@
     </div>
   </header>
   <div class="meme" id="meme" role="img" aria-label="Meme"></div>
+  <div class="explain" id="explain" hidden></div>
   <div class="controls">
     <input id="q" type="search" data-ph="search" aria-label="Search">
     <input id="basket" type="number" min="0" step="1" data-ph="basket" aria-label="Basket">
@@ -90,7 +97,7 @@ const T = {
            ["We list the shops. You press \"Buy\".","Not responsible for your cart, your wallet or your regrets"],
            ["Just checking the shipping price","Proceeds to add 14 things to reach free delivery"],
            ["Disclaimer: this site does not encourage consumerism","The free-shipping threshold does, though"]],
-    memeHint:"click for another disclaimer", all:"All", cost:"Shipping cost", free:"Free shipping", over:"Over", unknown:"Not confirmed", needs:"with",
+    memeHint:"click for another", cyBadge:"🇨🇾 Cypriot", whyJoke:"Explain the joke", closeInfo:"Hide explanation", all:"All", cost:"Shipping cost", free:"Free shipping", over:"Over", unknown:"Not confirmed", needs:"with",
     freeNow:"Free for your basket", pay:"You'd pay", addMore:"add", toFree:"to get free shipping", unk:"Cost unknown for your basket",
     verified:"✓ Verified", partial:"◐ Partly verified", unverified:"? Unverified", source:"source",
     footer:"Prices and thresholds change often. Always confirm at checkout with Cyprus selected. “Unverified” entries haven't been checked yet.",
@@ -102,7 +109,7 @@ const T = {
            ["Εμείς βάζουμε τα μαγαζιά. Εσύ πατάς «Αγορά».","Δεν ευθυνόμαστε για το καλάθι, το πορτοφόλι ή τις τύψεις σου"],
            ["Απλά κοιτάω τα μεταφορικά","Προσθέτει 14 πράγματα για να φτάσει στα δωρεάν"],
            ["Αποποίηση: το site δεν ενθαρρύνει τον καταναλωτισμό","Το όριο για δωρεάν μεταφορικά όμως, ναι"]],
-    memeHint:"κάνε κλικ για άλλη αποποίηση", all:"Όλα", cost:"Κόστος αποστολής", free:"Δωρεάν μεταφορικά", over:"Άνω των", unknown:"Δεν επιβεβαιώθηκε", needs:"με",
+    memeHint:"κλικ για άλλο", cyBadge:"🇨🇾 Κυπριακά", whyJoke:"Εξήγηση του αστείου", closeInfo:"Απόκρυψη εξήγησης", all:"Όλα", cost:"Κόστος αποστολής", free:"Δωρεάν μεταφορικά", over:"Άνω των", unknown:"Δεν επιβεβαιώθηκε", needs:"με",
     freeNow:"Δωρεάν για το καλάθι σας", pay:"Θα πληρώσετε", addMore:"προσθέστε", toFree:"για δωρεάν αποστολή", unk:"Άγνωστο κόστος για το καλάθι σας",
     verified:"✓ Επαληθευμένο", partial:"◐ Μερικώς επαληθευμένο", unverified:"? Μη επαληθευμένο", source:"πηγή",
     footer:"Οι τιμές αλλάζουν συχνά. Επιβεβαιώστε στο checkout με επιλεγμένη την Κύπρο. Τα «μη επαληθευμένα» δεν έχουν ελεγχθεί ακόμη.",
@@ -110,12 +117,49 @@ const T = {
 };
 const shops = window.SHOPS;
 const ICON = {Fashion:"👗", Sneakers:"👟", Beauty:"💄", Perfume:"🧴", Home:"🛋️", Electronics:"📱", Sports:"⚽", General:"🛍️", All:"🧺"};
-let memeI = Math.floor(Math.random() * 4);
-function renderMeme() {
-  const m = t("memes")[memeI % t("memes").length];
-  $("meme").innerHTML = `<span>${esc(m[0])}</span><span class="big">🛒💸</span><span>${esc(m[1])}</span><small>${esc(t("memeHint"))}</small>`;
+let memeI = 0, showInfo = false, deck = [];
+function shuffle(n) {  // Fisher-Yates: new random order on every page load
+  const a = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
 }
-const cats = [...new Set(shops.flatMap(s => s.categories))].sort();
+// Cypriot-dialect memes. Edit/add here: top, bottom, and the explanation in both languages.
+const CY_MEMES = [
+  { top: "Εν να δω μόνο…", bottom: "Καλάθι: 14 προϊόντα",
+    en: "“Εν να δω μόνο” (en na do mono) is Cypriot Greek for “I'm only going to look”. In Cypriot, εν (en) means “is”, and εν να works as the future “will” (standard Greek: θα). The joke: nobody who says this leaves with an empty cart.",
+    el: "Το «Εν να δω μόνο» στα κυπριακά σημαίνει «Θα δω μόνο». Το «εν» είναι το «είναι» και το «εν να» λειτουργεί ως μέλλοντας (στα κοινά ελληνικά: «θα»). Το αστείο: κανείς που το λέει δεν φεύγει με άδειο καλάθι." },
+  { top: "Έσιει δωρεάν μεταφορικά;", bottom: "Εν να πάρω τζαι άλλα τρία τότε",
+    en: "“Έσιει” (esiei) is Cypriot for “has” (standard: έχει) and “τζαι” (tzai) means “and/also” (standard: και). “Does it have free shipping? Then I'll take three more.” The joke is the free-shipping threshold: spend more to save on delivery.",
+    el: "Το «έσιει» είναι το «έχει» και το «τζαι» το «και». «Έχει δωρεάν μεταφορικά; Τότε θα πάρω τζαι άλλα τρία». Το αστείο είναι το όριο για δωρεάν μεταφορικά: ξοδεύεις περισσότερα για να γλιτώσεις τα μεταφορικά." },
+  { top: "Εν τζαι κακόν να το πάρω", bottom: "(στο καλάθι: τζαι τα τρία χρώματα)",
+    en: "“Εν τζαι κακόν” (en tzai kakon) literally means “it's not bad either”, a very Cypriot way of talking yourself into something: “it wouldn't hurt to get it”. Then you get all three colours.",
+    el: "Το «Εν τζαι κακόν» σημαίνει κυριολεκτικά «δεν είναι κι άσχημο», ο κυπριακός τρόπος να δικαιολογείς στον εαυτό σου μια αγορά. Και μετά παίρνεις και τα τρία χρώματα." },
+  { top: "Ίντα κάμνεις;", bottom: "Ψάχνω ποιο μαγαζί έσιει δωρεάν μεταφορικά",
+    en: "“Ίντα κάμνεις;” (inta kamnis) is Cypriot for “What are you doing?” (standard: Τι κάνεις;). The answer is every reader of this website.",
+    el: "Το «Ίντα κάμνεις;» είναι το «Τι κάνεις;» στα κυπριακά. Η απάντηση είναι ό,τι κάνει κάθε επισκέπτης αυτού του site." }
+];
+function memeList() {
+  const g = t("memes").map(m => ({ top: m[0], bottom: m[1] }));
+  const out = [];
+  for (let i = 0; i < Math.max(g.length, CY_MEMES.length); i++) {
+    if (g[i]) out.push(g[i]);
+    if (CY_MEMES[i]) out.push({ ...CY_MEMES[i], cy: true });
+  }
+  return out;
+}
+function renderMeme() {
+  const list = memeList();
+  if (deck.length !== list.length) deck = shuffle(list.length);
+  const m = list[deck[memeI % deck.length]];
+  const hasInfo = !!m.en;
+  $("meme").innerHTML = (m.cy ? `<em class="badge" style="font-style:normal">${t("cyBadge")}</em>` : "") +
+    `<span>${esc(m.top)}</span><span class="big">🛒💸</span><span>${esc(m.bottom)}</span>` +
+    (hasInfo ? `<button class="info" id="infoBtn" aria-label="${esc(t("whyJoke"))}" title="${esc(t("whyJoke"))}">i</button>` : "") +
+    `<small>${esc(t("memeHint"))}</small>`;
+  const ex = $("explain");
+  ex.hidden = !(hasInfo && showInfo);
+  if (hasInfo) ex.innerHTML = `<b>${esc(t("whyJoke"))}</b>${esc(m[lang])}`;
+}
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const eur = n => "€" + n.toFixed(2).replace(/\.00$/, "");
@@ -182,7 +226,10 @@ document.addEventListener("click", e => {
   if (c) { cat = c.dataset.c; applyStatic(); render(); }
   if (l) { lang = l.dataset.lang; try { localStorage.setItem("lang", lang); } catch(e){} applyStatic(); render(); }
 });
-$("meme").addEventListener("click", () => { memeI++; renderMeme(); });
+$("meme").addEventListener("click", e => {
+  if (e.target.closest("#infoBtn")) { showInfo = !showInfo; renderMeme(); return; }
+  memeI++; showInfo = false; renderMeme();
+});
 ["q","basket","sort"].forEach(id => $(id).addEventListener("input", render));
 applyStatic(); render();
 </script>
