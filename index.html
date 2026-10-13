@@ -160,6 +160,7 @@ function renderMeme() {
   ex.hidden = !(hasInfo && showInfo);
   if (hasInfo) ex.innerHTML = `<b>${esc(t("whyJoke"))}</b>${esc(m[lang])}`;
 }
+const cats = [...new Set(shops.flatMap(s => s.categories))].sort();
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const eur = n => "€" + n.toFixed(2).replace(/\.00$/, "");
