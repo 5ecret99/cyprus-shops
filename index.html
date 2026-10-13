@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shop to Cyprus</title>
+<meta name="description" content="Online shops that deliver to Cyprus: shipping costs and free-shipping thresholds.">
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--text:#1b1f24;--muted:#667085;--line:#e4e7ec;--accent:#0b6bcb;--ok:#117a45;--warn:#a15c00}
+  @media(prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#171a21;--text:#eceff4;--muted:#98a2b3;--line:#2a2f3a;--accent:#5aa2ff;--ok:#4ed08a;--warn:#f0b04a}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:0 16px 48px}
+  header{padding:32px 0 16px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  h1{margin:0 0 4px;font-size:1.7rem}
+  header p{margin:0;color:var(--muted)}
+  .lang{display:flex;gap:4px}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+  input,select,.chip{font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text)}
+  input[type=search]{flex:1;min-width:180px}
+  input[type=number]{width:140px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+  .chip{border-radius:999px;cursor:pointer;font-size:.9rem;padding:6px 12px}
+  .chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
+  .card h2{margin:0;font-size:1.1rem}
+  .card h2 a{color:inherit;text-decoration:none}
+  .card h2 a:hover{color:var(--accent)}
+  .tags{display:flex;flex-wrap:wrap;gap:4px}
+  .tag{font-size:.75rem;color:var(--muted);border:1px solid var(--line);padding:1px 8px;border-radius:999px}
+  .row{display:flex;justify-content:space-between;gap:8px;font-size:.95rem}
+  .row span:first-child{color:var(--muted)}
+  .yes{color:var(--ok);font-weight:600}.no{color:var(--muted)}
+  .est{background:var(--bg);border-radius:8px;padding:8px 10px;font-size:.95rem}
+  .note{font-size:.88rem;color:var(--muted);margin:0}
+  .status{font-size:.78rem;margin-top:auto;padding-top:8px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:8px}
+  .status.verified{color:var(--ok)}.status.partial,.status.unverified{color:var(--warn)}
+  .status a{color:var(--accent)}
+  .empty{color:var(--muted);padding:32px 0;text-align:center}
+  footer{margin-top:32px;font-size:.85rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 data-t="title"></h1>
+      <p data-t="sub"></p>
+    </div>
+    <div class="lang">
+      <button class="chip" data-lang="en">EN</button>
+      <button class="chip" data-lang="el">ΕΛ</button>
+    </div>
+  </header>
+  <div class="controls">
+    <input id="q" type="search" data-ph="search" aria-label="Search">
+    <input id="basket" type="number" min="0" step="1" data-ph="basket" aria-label="Basket">
+    <select id="sort" aria-label="Sort">
+      <option value="name" data-t="sortName"></option>
+      <option value="free" data-t="sortFree"></option>
+      <option value="cost" data-t="sortCost"></option>
+    </select>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="empty" hidden data-t="empty"></p>
+  <footer data-t="footer"></footer>
+</div>
+<script src="data.js"></script>
+<script>
+const T = {
+  en: {title:"Shop to Cyprus", sub:"Online shops that deliver to Cyprus: what shipping costs and when it's free.",
+    search:"Search shops…", basket:"Basket € (optional)", sortName:"Sort: Name", sortFree:"Sort: Lowest free-shipping threshold", sortCost:"Sort: Cheapest for my basket",
+    empty:"No shops match.", all:"All", cost:"Shipping cost", free:"Free shipping", over:"Over", unknown:"Not confirmed", needs:"with",
+    freeNow:"Free for your basket", pay:"You'd pay", addMore:"add", toFree:"to get free shipping", unk:"Cost unknown for your basket",
+    verified:"✓ Verified", partial:"◐ Partly verified", unverified:"? Unverified", source:"source",
+    footer:"Prices and thresholds change often. Always confirm at checkout with Cyprus selected. “Unverified” entries haven't been checked yet.",
+    cats:{Fashion:"Fashion",Beauty:"Beauty",Home:"Home",Electronics:"Electronics",Sports:"Sports",General:"General"}},
+  el: {title:"Αγορές για Κύπρο", sub:"Ηλεκτρονικά καταστήματα που στέλνουν στην Κύπρο: κόστος αποστολής και δωρεάν μεταφορικά.",
+    search:"Αναζήτηση…", basket:"Καλάθι € (προαιρετικό)", sortName:"Ταξινόμηση: Όνομα", sortFree:"Ταξινόμηση: Χαμηλότερο όριο δωρεάν", sortCost:"Ταξινόμηση: Φθηνότερο για το καλάθι μου",
+    empty:"Δεν βρέθηκαν καταστήματα.", all:"Όλα", cost:"Κόστος αποστολής", free:"Δωρεάν μεταφορικά", over:"Άνω των", unknown:"Δεν επιβεβαιώθηκε", needs:"με",
+    freeNow:"Δωρεάν για το καλάθι σας", pay:"Θα πληρώσετε", addMore:"προσθέστε", toFree:"για δωρεάν αποστολή", unk:"Άγνωστο κόστος για το καλάθι σας",
+    verified:"✓ Επαληθευμένο", partial:"◐ Μερικώς επαληθευμένο", unverified:"? Μη επαληθευμένο", source:"πηγή",
+    footer:"Οι τιμές αλλάζουν συχνά. Επιβεβαιώστε στο checkout με επιλεγμένη την Κύπρο. Τα «μη επαληθευμένα» δεν έχουν ελεγχθεί ακόμη.",
+    cats:{Fashion:"Μόδα",Beauty:"Ομορφιά",Home:"Σπίτι",Electronics:"Ηλεκτρονικά",Sports:"Αθλητικά",General:"Γενικά"}}
+};
+const shops = window.SHOPS;
+const cats = [...new Set(shops.flatMap(s => s.categories))].sort();
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const eur = n => "€" + n.toFixed(2).replace(/\.00$/, "");
+let lang = "en", cat = "All";
+try { lang = localStorage.getItem("lang") || ((navigator.language || "").startsWith("el") ? "el" : "en"); } catch(e){}
+const t = k => T[lang][k];
+
+// Estimated shipping for a basket: {kind:'free'|'pay'|'unknown', amount?, gap?}
+function estimate(s, b) {
+  if (s.freeOver != null && b >= s.freeOver) return {kind:"free"};
+  if (s.shippingFee != null) return {kind:"pay", amount:s.shippingFee, gap: s.freeOver != null ? s.freeOver - b : null};
+  return {kind:"unknown", gap: s.freeOver != null ? s.freeOver - b : null};
+}
+const sortKey = (s, b) => { const e = estimate(s, b); return e.kind==="free" ? 0 : e.kind==="pay" ? e.amount : Infinity; };
+
+function applyStatic() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t));
+  document.querySelectorAll("[data-ph]").forEach(el => el.placeholder = t(el.dataset.ph));
+  document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === lang));
+  $("chips").innerHTML = ["All", ...cats].map(c =>
+    `<button class="chip" aria-pressed="${c === cat}" data-c="${esc(c)}">${esc(c === "All" ? t("all") : t("cats")[c] || c)}</button>`).join("");
+}
+
+function render() {
+  const q = $("q").value.trim().toLowerCase();
+  const b = parseFloat($("basket").value);
+  const hasB = Number.isFinite(b) && b > 0;
+  let list = shops.filter(s => (cat === "All" || s.categories.includes(cat)) &&
+    (!q || (s.name + " " + s.categories.map(c => t("cats")[c] || c).join(" ")).toLowerCase().includes(q)));
+  const sort = $("sort").value;
+  if (sort === "free") list.sort((a,b2) => (a.freeOver ?? Infinity) - (b2.freeOver ?? Infinity) || a.name.localeCompare(b2.name));
+  else if (sort === "cost" && hasB) list.sort((a,b2) => sortKey(a,b) - sortKey(b2,b) || a.name.localeCompare(b2.name));
+  else list.sort((a,b2) => a.name.localeCompare(b2.name));
+  $("empty").hidden = list.length > 0;
+  $("grid").innerHTML = list.map(s => {
+    let est = "";
+    if (hasB) {
+      const e = estimate(s, b);
+      est = `<div class="est">` + (e.kind === "free"
+          ? `<span class="yes">${t("freeNow")}</span>${s.freeCond ? " (" + t("needs") + " " + esc(s.freeCond) + ")" : ""}`
+          : e.kind === "pay"
+            ? `${t("pay")} <b>${eur(e.amount)}</b>` + (e.gap > 0 ? ` · ${t("addMore")} ${eur(e.gap)} ${t("toFree")}` : "")
+            : `${t("unk")}` + (e.gap > 0 ? ` · ${t("addMore")} ${eur(e.gap)} ${t("toFree")}` : "")) + `</div>`;
+    }
+    return `<article class="card">
+      <h2><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)} ↗</a></h2>
+      <div class="tags">${s.categories.map(c => `<span class="tag">${esc(t("cats")[c] || c)}</span>`).join("")}</div>
+      <div class="row"><span>${t("cost")}</span><span>${s.shippingFee != null ? eur(s.shippingFee) : t("unknown")}</span></div>
+      <div class="row"><span>${t("free")}</span>
+        <span class="${s.freeOver != null ? "yes" : "no"}">${s.freeOver != null ? t("over") + " " + eur(s.freeOver) : t("unknown")}</span></div>
+      ${est}
+      <p class="note">${esc(s.note)}</p>
+      <div class="status ${s.status}"><span>${t(s.status)}${s.checked ? " · " + esc(s.checked) : ""}</span>
+        <a href="${esc(s.source)}" target="_blank" rel="noopener">${t("source")}</a></div>
+    </article>`;
+  }).join("");
+}
+document.addEventListener("click", e => {
+  const c = e.target.closest("[data-c]"), l = e.target.closest("[data-lang]");
+  if (c) { cat = c.dataset.c; applyStatic(); render(); }
+  if (l) { lang = l.dataset.lang; try { localStorage.setItem("lang", lang); } catch(e){} applyStatic(); render(); }
+});
+["q","basket","sort"].forEach(id => $(id).addEventListener("input", render));
+applyStatic(); render();
+</script>
+</body>
+</html>
